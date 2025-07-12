@@ -50,7 +50,9 @@ Preferences preferences;
 void setupWifiManager() {
   WiFiManager wm;
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
-  wm.resetSettings();
+  if (digitalRead(TRIGGER_PIN) == LOW) {
+    wm.resetSettings();
+  }
 
   WiFiManagerParameter author_email_param("author_email", "Author Email", "", 200);
   WiFiManagerParameter app_password_param("app_password", "Gmail App Password", "", 200);
@@ -94,40 +96,21 @@ void setupWifiManager() {
 void setup() {
   WiFi.mode(WIFI_STA);
   Serial.begin(115200);
-
+  WiFi.begin(); 
   preferences.begin("config", true);  // read-only
   discord_webhook = preferences.getString("webhook", "");
   author_email = preferences.getString("author_email", "");
   app_password = preferences.getString("app_password", "");
   recipient_email = preferences.getString("recipient_email", "");
+  recipient_email2 = preferences.getString("recipient_email2", "");
   preferences.end();
 
-  // Some input validation
+  // If no configuration, trigger setup
   bool hasEmailInfo = author_email.length() > 0 || app_password.length() > 0 || recipient_email.length() > 0;
   bool hasDiscordWebhook = discord_webhook.length() > 0;
 
-  if (hasEmailInfo && hasDiscordWebhook) {
-    // Conflict: both defined. Default to email; clear Discord
-    preferences.begin("config", false);  // write mode
-    preferences.putString("webhook", "");
-    discord_webhook = "";
-    preferences.end();
-    Serial.println("⚠️ Both email and Discord settings found. Using email and clearing Discord webhook.");
-  } else if (hasDiscordWebhook && !hasEmailInfo) {
-    // Discord only: clear email credentials
-    preferences.begin("config", false);  // write mode
-    preferences.putString("author_email", "");
-    preferences.putString("app_password", "");
-    preferences.putString("recipient_email", "");
-    author_email = "";
-    app_password = "";
-    recipient_email = "";
-    preferences.end();
-    Serial.println("✅ Using Discord webhook. Email credentials cleared.");
-  } else if (!hasEmailInfo && !hasDiscordWebhook) {
-    // Neither set: trigger WiFiManager
-    Serial.println("⚠️ No alert settings found. Launching WiFiManager...");
-    setupWifiManager();
+  if (!hasEmailInfo && !hasDiscordWebhook) {
+    setupWifiManager();  // Only trigger if no saved config exists
   }
 
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
