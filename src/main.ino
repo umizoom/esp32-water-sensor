@@ -36,7 +36,7 @@ bool wasLow = false;
 bool messageSent = false;
 bool sensorReady = false;
 
-const unsigned long sensorStabilizeTime = 20000;  // 20 seconds
+const unsigned long sensorStabilizeTime = 5000;  // 5 seconds
 unsigned long bootTime = 0;
 String discord_webhook = "";
 String author_email = "";
@@ -109,6 +109,9 @@ void setup() {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("❌ Failed to connect to WiFi. Rebooting...");
     delay(3000);
+  if (digitalRead(TRIGGER_PIN) == LOW) {
+    setupWifiManager();
+  }
     ESP.restart();
   }
 
@@ -132,7 +135,7 @@ void setup() {
   pinMode(TRIGGER_PIN, INPUT_PULLUP);
   pinMode(WATER_SENSOR, INPUT);
   bootTime = millis();
-  Serial.println("Waiting 20 seconds for sensor to stabilize...");
+  Serial.println("Waiting 5 seconds for sensor to stabilize...");
 }
 
 void loop() {
