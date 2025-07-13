@@ -96,7 +96,24 @@ void setupWifiManager() {
 void setup() {
   WiFi.mode(WIFI_STA);
   Serial.begin(115200);
-  WiFi.begin(); 
+  
+  WiFi.begin();
+  Serial.print("Connecting to WiFi");
+  unsigned long wifiStart = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 10000) {  // 10s timeout
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ Failed to connect to WiFi. Rebooting...");
+    delay(3000);
+    ESP.restart();
+  }
+
+  Serial.println("✅ WiFi connected. IP: " + WiFi.localIP().toString());
+
   preferences.begin("config", true);  // read-only
   discord_webhook = preferences.getString("webhook", "");
   author_email = preferences.getString("author_email", "");
@@ -105,7 +122,6 @@ void setup() {
   recipient_email2 = preferences.getString("recipient_email2", "");
   preferences.end();
 
-  // If no configuration, trigger setup
   bool hasEmailInfo = author_email.length() > 0 || app_password.length() > 0 || recipient_email.length() > 0;
   bool hasDiscordWebhook = discord_webhook.length() > 0;
 
@@ -120,9 +136,18 @@ void setup() {
 }
 
 void loop() {
+  // Reboot if WiFi is lost
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ Lost WiFi connection. Rebooting...");
+    delay(3000); // Let Serial message print
+    ESP.restart();
+  }
+
+  // Re-enter WiFiManager config mode if TRIGGER_PIN is LOW
   if (digitalRead(TRIGGER_PIN) == LOW) {
     setupWifiManager();
   }
+
   // Wait for sensor stabilization
   if (!sensorReady && millis() - bootTime < sensorStabilizeTime) {
     delay(100);
@@ -139,11 +164,11 @@ void loop() {
       wasLow = true;
     } else if (millis() - lastLowTime >= 1000 && !messageSent) {
       Serial.println("Sensor High for 1s, sending message");
-      
+
       // Conditionally send email or Discord alert
       bool hasEmailInfo = author_email.length() > 0 || app_password.length() > 0 || recipient_email.length() > 0;
       bool hasDiscordWebhook = discord_webhook.length() > 0;
-      
+
       if (hasEmailInfo) {
         sendEmail();
       } else if (hasDiscordWebhook) {
