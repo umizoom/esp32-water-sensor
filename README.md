@@ -43,3 +43,4 @@ To set the ESP32 click the boot buttom. Refer to the diagram below.
 
 <img width="1500" height="816" alt="image" src="https://github.com/user-attachments/assets/bf7edcb3-0c84-49bf-85ba-69c2e42e6793" />
 
+![Sensor wires](media/image.png)
